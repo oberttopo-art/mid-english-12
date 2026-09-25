@@ -32,6 +32,14 @@
 </head>
 <body oncontextmenu="return false;">
 
+  <!-- Form Tersembunyi untuk Submit ke Google Form tanpa Masalah CORS -->
+  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+  <form id="gform" action="https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
+    <input type="text" name="entry.188448373" id="g_nama">
+    <input type="text" name="entry.1645281488" id="g_kelas">
+    <input type="text" name="entry.1763198084" id="g_nilai">
+  </form>
+
   <!-- Modal Awal Login -->
   <div id="modal-start">
     <div class="card-modal">
@@ -87,11 +95,6 @@
   </div>
 
   <script>
-    const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse";
-    const ENTRY_NAMA  = "entry.188448373";
-    const ENTRY_KELAS = "entry.1645281488";
-    const ENTRY_NILAI = "entry.1763198084";
-
     let currentQ = 0;
     let userAnswers = {};
     let studentNama = "", studentKelas = "";
@@ -428,11 +431,8 @@
       ], correct: [2, 4] }
     ];
 
-    // Map kunci jawaban untuk kalkulasi nilai
     const keys = {};
-    questionsData.forEach(q => {
-      keys[q.id] = q.correct;
-    });
+    questionsData.forEach(q => { keys[q.id] = q.correct; });
 
     function startExam() {
       studentNama = document.getElementById('input-nama').value.trim();
@@ -582,12 +582,13 @@
       clearInterval(timerInterval);
       let finalScore = calculateScore();
 
-      let formData = new FormData();
-      formData.append(ENTRY_NAMA, studentNama);
-      formData.append(ENTRY_KELAS, studentKelas);
-      formData.append(ENTRY_NILAI, finalScore);
+      // Memasukkan data ke form tersembunyi
+      document.getElementById('g_nama').value = studentNama;
+      document.getElementById('g_kelas').value = studentKelas;
+      document.getElementById('g_nilai').value = finalScore;
 
-      fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: formData }).catch(() => {});
+      // Melakukan submit form secara otomatis
+      document.getElementById('gform').submit();
 
       if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
       
