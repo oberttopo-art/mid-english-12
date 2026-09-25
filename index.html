@@ -11,7 +11,7 @@
     #modal-lock { display: none; background: rgba(185, 28, 28, 0.98); }
     .card-modal { background: #fff; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
     .card-modal h2 { margin-bottom: 15px; color: #1e293b; }
-    .card-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .card-modal input, .card-modal select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background: #fff; }
     .btn { background: #2563eb; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; transition: 0.2s; }
     .btn:hover { background: #1d4ed8; }
     .cbt-container { display: flex; height: 100vh; width: 100vw; }
@@ -32,7 +32,7 @@
 </head>
 <body oncontextmenu="return false;">
 
-  <!-- Form Tersembunyi untuk Submit ke Google Form tanpa Masalah CORS -->
+  <!-- Form Tersembunyi untuk Otomatis Kirim Hasil ke Google Form & Spreadsheet -->
   <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
   <form id="gform" action="https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
     <input type="text" name="entry.404217112" id="g_nama">
@@ -46,7 +46,12 @@
       <h2>Ujian TKA 2026</h2>
       <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Dilarang memindahkan tab atau membuka aplikasi lain. Pelanggaran 2x akan memicu Auto-Submit!</p>
       <input type="text" id="input-nama" placeholder="Nama Lengkap Siswa" required>
-      <input type="text" id="input-kelas" placeholder="Kelas / No. Absen" required>
+      <select id="input-kelas" required>
+        <option value="">-- Pilih Kelas --</option>
+        <option value="XII.1">XII.1</option>
+        <option value="XII.2">XII.2</option>
+        <option value="XII.3">XII.3</option>
+      </select>
       <button class="btn" onclick="startExam()">Mulai Ujian (Kunci Layar Tight-Lock)</button>
     </div>
   </div>
@@ -436,8 +441,8 @@
 
     function startExam() {
       studentNama = document.getElementById('input-nama').value.trim();
-      studentKelas = document.getElementById('input-kelas').value.trim();
-      if(!studentNama || !studentKelas) return alert("Mohon isi Nama Lengkap dan Kelas terlebih dahulu!");
+      studentKelas = document.getElementById('input-kelas').value;
+      if(!studentNama || !studentKelas) return alert("Mohon isi Nama Lengkap dan pilih Kelas terlebih dahulu!");
 
       document.getElementById('disp-nama').innerText = studentNama;
       document.getElementById('disp-kelas').innerText = "Kelas: " + studentKelas;
@@ -582,12 +587,12 @@
       clearInterval(timerInterval);
       let finalScore = calculateScore();
 
-      // Memasukkan data ke form tersembunyi
+      // Isi form tersembunyi
       document.getElementById('g_nama').value = studentNama;
       document.getElementById('g_kelas').value = studentKelas;
       document.getElementById('g_nilai').value = finalScore;
 
-      // Melakukan submit form secara otomatis
+      // Submit otomatis ke Google Form
       document.getElementById('gform').submit();
 
       if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
