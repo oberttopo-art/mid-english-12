@@ -32,7 +32,7 @@
 </head>
 <body oncontextmenu="return false;">
 
-  <!-- Form Tersembunyi untuk Otomatis Kirim Hasil ke Google Form & Spreadsheet -->
+  <!-- Form Tersembunyi Kirim Nilai Langsung ke Google Form MID BAHASA INGGRIS SMA -->
   <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
   <form id="gform" action="https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
     <input type="text" name="entry.404217112" id="g_nama">
@@ -582,7 +582,7 @@
       return Math.round((correctCount / 44) * 100);
     }
 
-function finishExam(force = false) {
+    function finishExam(force = false) {
       if(!force && !confirm("Apakah Anda yakin ingin menyelesaikan ujian?")) return;
       clearInterval(timerInterval);
       let finalScore = calculateScore();
@@ -592,12 +592,12 @@ function finishExam(force = false) {
       document.getElementById('g_kelas').value = studentKelas;
       document.getElementById('g_nilai').value = finalScore;
 
-      // Keluar dari Fullscreen terlebih dahulu agar submit tidak diblokir browser
+      // Keluar dari Fullscreen agar submit tidak dicegat browser
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
 
-      // Beri jeda 300ms lalu submit ke Google Form
+      // Kirim data secara otomatis ke Google Form
       setTimeout(() => {
         document.getElementById('gform').submit();
       }, 300);
