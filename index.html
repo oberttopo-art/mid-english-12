@@ -582,7 +582,7 @@
       return Math.round((correctCount / 44) * 100);
     }
 
-    function finishExam(force = false) {
+function finishExam(force = false) {
       if(!force && !confirm("Apakah Anda yakin ingin menyelesaikan ujian?")) return;
       clearInterval(timerInterval);
       let finalScore = calculateScore();
@@ -592,10 +592,15 @@
       document.getElementById('g_kelas').value = studentKelas;
       document.getElementById('g_nilai').value = finalScore;
 
-      // Submit otomatis ke Google Form
-      document.getElementById('gform').submit();
+      // Keluar dari Fullscreen terlebih dahulu agar submit tidak diblokir browser
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
 
-      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      // Beri jeda 300ms lalu submit ke Google Form
+      setTimeout(() => {
+        document.getElementById('gform').submit();
+      }, 300);
       
       document.body.innerHTML = `
         <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; background:#1e293b; color:#fff; text-align:center; padding:20px;">
