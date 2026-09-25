@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBT Simulasi TKA 2026 - Terkunci Tight Lock</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+    body { background-color: #f4f6f9; color: #333; height: 100vh; overflow: hidden; }
+    #modal-start, #modal-lock { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+    #modal-lock { display: none; background: rgba(185, 28, 28, 0.98); }
+    .card-modal { background: #fff; padding: 30px; border-radius: 12px; max-width: 480px; width: 90%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+    .card-modal h2 { margin-bottom: 15px; color: #1e293b; }
+    .card-modal input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .btn { background: #2563eb; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; transition: 0.2s; }
+    .btn:hover { background: #1d4ed8; }
+    .cbt-container { display: flex; height: 100vh; width: 100vw; }
+    .main-panel { flex: 1; padding: 20px 30px; overflow-y: auto; display: flex; flex-direction: column; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+    .timer { font-size: 20px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 6px 16px; border-radius: 20px; }
+    .question-box { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); flex: 1; overflow-y: auto; }
+    .option-item { margin: 12px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; transition: 0.2s; }
+    .option-item:hover { background: #f8fafc; }
+    .option-item input { margin-right: 12px; transform: scale(1.2); }
+    .side-panel { width: 320px; background: #fff; border-left: 1px solid #e2e8f0; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .grid-numbers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; max-height: 70vh; overflow-y: auto; }
+    .btn-num { padding: 10px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; }
+    .btn-num.active { border-color: #2563eb; background: #dbeafe; color: #1e40af; }
+    .btn-num.done { background: #22c55e; color: #fff; border-color: #16a34a; }
+    .text-passage { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; line-height: 1.5; border-left: 4px solid #2563eb; max-height: 250px; overflow-y: auto; white-space: pre-line; }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+
+  <!-- Modal Awal Login -->
+  <div id="modal-start">
+    <div class="card-modal">
+      <h2>Ujian TKA 2026</h2>
+      <p style="color:#64748b; font-size:14px; margin-bottom:15px;">Dilarang memindahkan tab atau membuka aplikasi lain. Pelanggaran 2x akan memicu Auto-Submit!</p>
+      <input type="text" id="input-nama" placeholder="Nama Lengkap Siswa" required>
+      <input type="text" id="input-kelas" placeholder="Kelas / No. Absen" required>
+      <button class="btn" onclick="startExam()">Mulai Ujian (Kunci Layar Tight-Lock)</button>
+    </div>
+  </div>
+
+  <!-- Modal Peringatan Pelanggaran -->
+  <div id="modal-lock">
+    <div class="card-modal">
+      <h2 style="color:#dc2626;">PERINGATAN KECURANGAN!</h2>
+      <p style="color:#475569; margin-bottom:15px;" id="text-warning">Anda terdeteksi keluar dari layar ujian! Sisa toleransi: <b id="warn-count">2</b>x lagi.</p>
+      <button class="btn" style="background:#dc2626;" onclick="reLock()">Masuk Kembali ke Mode Ujian</button>
+    </div>
+  </div>
+
+  <!-- Tampilan Utama CBT -->
+  <div class="cbt-container">
+    <div class="main-panel">
+      <div class="header-bar">
+        <div>
+          <h3 id="disp-nama" style="color:#1e293b;">-</h3>
+          <small id="disp-kelas" style="color:#64748b;">-</small>
+        </div>
+        <div class="timer" id="timer-display">90:00</div>
+      </div>
+
+      <div class="question-box">
+        <h4 id="q-title" style="margin-bottom:15px; color:#334155;">Soal No. 1</h4>
+        <div id="q-passage"></div>
+        <div id="q-text" style="font-size:15px; line-height:1.6; margin-bottom:20px; font-weight:bold;"></div>
+        <div id="q-options"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top:15px;">
+        <button class="btn" style="width:auto;" onclick="prevQuestion()">Sebelumnya</button>
+        <button class="btn" style="width:auto; background:#16a34a;" onclick="nextQuestion()">Selanjutnya</button>
+      </div>
+    </div>
+
+    <!-- Panel Samping Navigasi -->
+    <div class="side-panel">
+      <div>
+        <h4 style="color:#334155;">Navigasi Soal</h4>
+        <div class="grid-numbers" id="grid-nav"></div>
+      </div>
+      <button class="btn" style="background:#dc2626;" onclick="finishExam()">Selesai & Kumpulkan Ujian</button>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse";
+    const ENTRY_NAMA  = "entry.188448373";
+    const ENTRY_KELAS = "entry.1645281488";
+    const ENTRY_NILAI = "entry.1763198084";
+
+    let currentQ = 0;
+    let userAnswers = {};
+    let studentNama = "", studentKelas = "";
+    let totalSeconds = 90 * 60;
+    let timerInterval = null;
+    let violationCount = 0;
+    const maxViolations = 2;
+
+    const PASSAGES = {
+      sonTinh: "King Hung Vuong VI had a beautiful daughter. He did not want her to marry just any prince. So, he made an announcement that he was looking for the right husband for her. Many princes came from faraway lands, but none of them was a good match for the princess.\n\nSon Tinh was the Spirit of the Mountain, and Thuy Tinh was the Spirit of the Waters. One day, they both appeared as young noblemen and asked to marry the princess. They were equally talented, powerful, and respected. The King found it hard to choose, so he decided to give them a test. He said that the one who brought the proper wedding gifts first the next morning would marry his daughter.\n\nThe next day, Son Tinh arrived early with his gifts. The King kept his promise and gave the princess to him. Thuy Tinh was angry about losing. He challenged Son Tinh to fight for the princess. But Son Tinh refused, believing he had already won fairly. Furious, Thuy Tinh used his power to call the rivers and streams to rise. Soon, the land was covered with floods that destroyed crops and homes.\n\nSon Tinh stayed calm in his mountain palace. Whenever the water rose, he made his mountains higher. After many days of fighting, Thuy Tinh grew tired and ordered the waters to retreat. Still, he never accepted his defeat. Every year, he tried again to attack, and this is how monsoons came to Vietnam.",
+      libraryInfo: "[Infographic: How to Study in the Library]\n1. Prepare Your Materials: Bring books, notes, stationery, water, library card.\n2. Choose Quiet Spot: Find table with good light, little noise. Avoid sitting too close to entrance or restroom.\n3. Set a Study Goal: Decide what you want to finish.\n4. Follow Library Rules: Speak softly, keep phone on silent, no eating inside.\n5. Take Short Breaks: Stand up, stretch, or walk for 5 minutes after 1 hour.\n6. Review Before Leaving: Check notes, organize books, return borrowed materials.",
+      bali: "Exploring Bali's Natural Wonders\n\nBali, a beautiful island in Indonesia, is known for its stunning landscapes and rich culture. While many come for the beaches and temples, the island also offers natural attractions that amaze nature lovers from around the world. From national parks and waterfalls to terraced rice fields, Bali is full of natural beauty.\n\nIn the west lies West Bali National Park, a peaceful area filled with green forests, calm mangrove swamps, and colorful coral reefs along the sea. The air is fresh, and the scenery feels untouched. One of the park’s most special sights is the Bali Starling—a rare white bird with bright blue around its eyes. Its soft song adds magic to the quiet forest. Visitors can walk along clear paths and enjoy the rich variety of plants and animals in this protected area.\n\nHeading north, travelers find the scenic Munduk Waterfall, surrounded by green hills and forests. Water flows gently over rocky cliffs into a cool clear pool. Mist rises into the air, mixing with the calming sound of falling water. The walk to the waterfall passes through narrow paths lined with coffee and clove trees. Their fresh scent fills the air, offering a pleasant and peaceful experience. Munduk is the perfect place to relax and enjoy Bali’s natural charm.\n\nNear the cultural center Ubud, the famous Tegalalang rice terraces stretch across the hills in green steps. These terraces are shaped by generations of farmers who work the land by hand. In the morning, mist rises above the fields, and sunlight reflects off the water in the paddies. Farmers in wide-brimmed hats plant rice carefully, their feet sinking into the soft earth. Water flows gently through small canals, keeping the fields healthy and green. The quiet surroundings and slow rhythm of farm life create a peaceful and inspiring scene.\n\nThese natural wonders highlight Bali's dedication in preserving its environmental and cultural treasures. By exploring these sites, tourists not only experience the island's scenic beauty but also support ongoing conservation efforts, helping to ensure that Bali's wonders last for future generations.",
+      internship: "My Experience as an Intern at a Sports Club\n\nLast summer, I had the opportunity to work as an intern at a local sports club. It was my first time working in a professional sports environment, and I was both nervous and excited. The internship went through a few phases, starting from orientation until finally jumping in to help during practices and games.\n\nOn my first day, I met the head coach, who welcomed me and explained my tasks. I had to set up cones for drills, bring water for the players, and check the training schedules. The first few days were challenging because I was not used to the morning routine. Every morning I had to wake up early, arrive on time, and follow instructions carefully. I worried about making mistakes, but the coaches were kind and guided me.\n\nIn the second month of my internship, I was trained to handle emergency situations. I got the chance to put that knowledge into practice when something unexpected happened. During football practice, a player fell and hurt his ankle. Everyone stopped, and I quickly ran to get the first aid kit. I helped the coach assess the injury and ensured the player stayed calm while we got him seated safely. Luckily, it wasn’t serious, but the experience reinforced an important lesson: staying alert and prepared during emergencies can make a big difference.\n\nAt the end of my internship, the coaches held an evaluation and reflection session where they shared the results of their feedback. They highlighted my strengths in teamwork, responsibility, and communication, and even gave me a club T-shirt as a gift. I felt proud because I had improved in these areas. It was a great experience, and I hope to work in a sports club again in the future.",
+      socialMedia: "Social Media Harms Teen Mental Health\n\nIn today’s world, social media is a big part of many teenagers’ daily lives. While it has some benefits, such as staying connected with friends, meeting new people, and learning about interesting topics, it also brings serious problems. I strongly believe that social media harms teen mental health, and we must pay more attention to this issue before it becomes even worse.\n\nFirst, social media often makes teenagers compare themselves to others in an unhealthy way. When teens see pictures of people who seem perfect, they feel that they are not good enough. These feelings can lower self-esteem and lead to sadness, anxiety, or even depression. The problem is that many of these online posts are edited, filtered, or fake, but teens still feel pressure to look or live the same way. They may think that their own life is boring or not successful, which is simply not true.\n\nSecond, too much time on social media affects sleep and study habits. Many teenagers use their phones late at night, checking messages or watching videos, which reduces sleep time and quality. Without enough sleep, teens cannot focus well in class, and their grades may suffer. This can increase stress and worry about the future, making them feel overwhelmed.\n\nFinally, online bullying, or cyberbullying, is another serious danger. Unlike face-to-face bullying, it can happen at any time and be shared with many people. Victims of cyberbullying often feel alone, scared, and helpless, and in some cases, it leads to serious mental health problems.\n\nIn conclusion, although social media has some good uses, its harm to teen mental health is much greater. Teenagers need support from parents, teachers, and society to use it wisely. Schools should teach students how to use social media in healthy ways, and parents should guide their children to take breaks and spend time offline. By doing this, we can help protect young people’s mental health in this digital age.",
+      lionMouse: "The Lion and the Mouse\n\nOnce upon a time, in a thick jungle in Africa, there lived a strong and fierce lion. Every afternoon, the lion would rest under the cool shade of a big tree after walking through the forest.\n\nOne day, while he was sleeping, a playful little mouse passed by. The mouse saw the lion’s thick mane and was curious. He climbed up and began to jump around on the lion’s head, playing in his mane.\n\nThe lion woke up suddenly and was not happy at all. He quickly caught the mouse in his big paw and roared, “Who dares to wake me up?” He was very angry and almost killed the mouse.\n\nScared and shaking, the mouse begged the lion, “Please don’t kill me! I didn’t mean to bother you. If you let me go, I promise I’ll help you one day.”\n\nThe lion laughed loudly. “You? Help me? That’s funny.” But the lion was feeling kind, so he let the mouse go free.\n\nA few days later, the lion was walking through the jungle again when he fell into a trap. A net set by hunters caught him, and he couldn’t escape. He tried to bite and tear the ropes, but they were too strong. The lion roared loudly, hoping someone would come.\n\nThe mouse heard the roar and ran to help. He saw the lion trapped and quickly started to chew the ropes with his sharp teeth. After some time, the net broke, and the lion was free.\n\nThe lion looked at the mouse with surprise and said, “Thank you! You really saved my life.”\n\nThe mouse smiled and said, “I told you I would help you one day.”\n\nFrom that moment on, the lion and the mouse became close friends. The lion learned that even small creatures can do great things, and we all need help sometimes.",
+      studyTech: "[Infographic: Effective Study Techniques]\n1. Know Your Learning Style\n2. Set a Consistent Study Schedule\n3. Create a Comfortable Study Space\n4. Use the Pomodoro Technique (25 min study, 5 min break)\n5. Take Effective Notes\n6. Practice and Repeat\n7. Join a Study Group\n8. Leverage Technology\n9. Get Enough Sleep\n10. Be Patient and Persistent",
+      reef: "The Great Barrier Reef\n\nThe Great Barrier Reef is one of the most beautiful places in the world. It is located in the Pacific Ocean, near the northeast coast of Australia. The reef is very big. It stretches over 2,000 kilometers and can even be seen from space. There are many small coral islands and clear, warm waters around the reef.\n\nThis reef is full of life. There are many kinds of colorful fish, sea turtles, dolphins, and even sharks. Coral of different shapes and colors grows under the water. Sea birds fly over the reef and nest on small islands. People can see this beauty by swimming, diving, or joining a boat tour.\n\nThe colors under the water are amazing. Coral comes in red, yellow, green, and blue. Some coral looks like trees, and some looks like big round stones. Small fish swim in and out of the coral like they are playing a game. In some places, soft coral moves with the water like grass in the wind. When the sun shines, the reef looks bright and full of light. It feels like a different world under the sea.\n\nThe reef is not only beautiful, but also very important. It helps protect the coast from big waves and storms. It is a home for sea animals and a place where plants can grow. Many people also get food and jobs from the sea near the reef. Without the reef, the ocean would not be the same.",
+      money: "Why Teenagers Should Learn to Manage Their Money\n\nMany young people today often spend money on things they like, such as snacks, clothes, or fun activities. But learning to handle money from a young age is very important. Good money habits can help students make a better future.\n\nHaving a clear plan for the future can show teenagers how to use their money. Students should think about short-term goals, like getting a new phone, and long-term goals, like saving for college or starting a business. Writing these goals down can help students stay motivated and focused.\n\nA budget helps students see where their money goes every month. It's important to list basic needs like food and travel, and also other costs like clothes or presents. A budget makes it easier to decide how much money to save, spend, or keep for unexpected problems.\n\nSometimes, students don't know how much they spend on small things. Keeping track of spending with notes or apps can help students understand their habits. This helps them stay within their budget and make changes if needed.\n\nTeenagers should also learn the difference between saving money and investing money. Saving is safer but slower, while investing has more risk but can earn more money. Knowing both can help students choose the best way for their money goals.\n\nTo sum up, students who learn to plan, budget, track, and understand saving choices are more ready for the future. That is why learning about money should start early and be done often.\n\nTable 1. How do students manage their money?\n- Students who save regularly: 45% (Save at least 10% of allowance)\n- Students who track expenses: 35% (Use apps or notes)\n- Students with financial education: 25% (Have learned budgeting in class)\n- Students who often borrow from friends: 30% (Due to running out of money)\n- Students who spend most on food & drinks: 50% (Largest category of spending)\n- Students who plan monthly budgets: 28% (Usually better savers)",
+      falseLion: "The False Lion King\n\nOnce upon a time, in Africa, there lived two lion kings. One was named Hera and the other was Shero. Hera was very strong and handsome. All the animals loved and respected him. He was a great leader. Shero was not like Hera. He had a small mane and a funny, squeaky voice. Shero liked to pretend he was as powerful as Hera. He often copied Hera’s roar, but it made the other animals laugh.\n\nOne day, the animals heard that some hyenas were causing trouble near the river. Hera quickly gathered his followers to stop the hyenas. Shero also wanted to come. He wanted to show everyone that he was strong too.\n\nWhen they reached the river, Hera roared loudly. His roar was so powerful that the hyenas got scared. Shero also tried to roar, but his voice was high and silly. The hyenas laughed at him. Their leader, Hank the Hyena, made jokes about Shero.\n\nHera stayed calm and smiled. Shero did not give up. He said, “I am just as strong as Hera!” The hyenas laughed even louder. Shero tried to show his power by jumping on a small dirt hill. But he tripped and fell into the ground. The hyenas laughed so much they cried. Even Hera laughed a little.\n\nAt the end of the day, the hyenas left, still laughing about Shero. Hera told Shero, “You are not like me, but you make everyone happy with your jokes.” Shero smiled and understood that he had his own special gift.\n\nFrom that day, Shero became the kingdom’s jester. He and Hera ruled together — one with strength, and one with laughter. The animals learned that both power and fun are important in life."
+    };
+
+    const questionsData = [
+      { id: 1, type: "single", passage: PASSAGES.sonTinh, question: "Which of the following outlines shows the correct main points of the story?", options: [
+        "King Hung Vuong VI wanted the best husband... Thuy Tinh arrived first with gifts... Princess given to Thuy Tinh.",
+        "King Hung Vuong VI had a beautiful daughter. He announced he was looking for the right husband. Son Tinh and Thuy Tinh appeared and asked to marry her. The King gave them a test with wedding gifts. Son Tinh arrived first and married the princess. Thuy Tinh attacked with floods but was defeated.",
+        "King Hung Vuong VI asked his daughter to choose... Princess liked both... King delayed decision... Asked them to fight...",
+        "King Hung Vuong VI searched for a husband... Thuy Tinh lost test and became angry... Son Tinh drowned in floods.",
+        "The King wanted a nobleman... Son Tinh refused challenge of gifts... King chose Thuy Tinh as winner."
+      ], correct: 1 },
+      { id: 2, type: "single", passage: PASSAGES.sonTinh, question: "Why did Thuy Tinh attack Son Tinh after the wedding?", options: [
+        "He was jealous of Son Tinh’s victory",
+        "He believed the King had lied to him.",
+        "He thought the princess loved him more.",
+        "He wanted to show off his power to the king.",
+        "He had promised to fight until death."
+      ], correct: 0 },
+      { id: 3, type: "single", passage: PASSAGES.sonTinh, question: "After reading the text, determine if 'Both are not humans', 'They can control the elements', and 'They love the king's daughter' show Similarity or Difference:", options: [
+        "All three traits are Similarity",
+        "All three traits are Difference",
+        "Some are Similarity, some are Difference",
+        "None of the above"
+      ], correct: 0 },
+      { id: 4, type: "single", passage: PASSAGES.sonTinh, question: "What does the phrase “kept his promise” in the text mean?", options: [
+        "Forgot about his decision.",
+        "Changed his mind about the wedding.",
+        "Did what he had promised to do.",
+        "Delayed the marriage for many days.",
+        "The King asked the princes to bring more gifts."
+      ], correct: 2 },
+      { id: 5, type: "multi", passage: PASSAGES.sonTinh, question: "What is the main lesson of the story? (Pilih semua yang benar)", options: [
+        "Accept defeat gracefully to prevent harm to others.",
+        "Be fair and follow the agreed rules in competitions.",
+        "Choose peaceful solutions rather than angry reactions.",
+        "Prepare honestly and present your gifts properly.",
+        "Respect leaders’ decisions and community agreements."
+      ], correct: [0, 1, 2] },
+
+      { id: 6, type: "single", passage: PASSAGES.libraryInfo, question: "Categorize activities: Standing up (Break), Bringing a book (Preparation), Doing stretch (Break):", options: [
+        "Standing up: Break | Bringing a book: Preparation | Doing stretch: Break",
+        "Standing up: Preparation | Bringing a book: Break | Doing stretch: Preparation",
+        "All are Preparation",
+        "All are Breaks"
+      ], correct: 0 },
+      { id: 7, type: "multi", passage: PASSAGES.libraryInfo, question: "How can we decide a certain table is perfect for studying according to the text? (Pilih semua yang benar)", options: [
+        "It has good lighting",
+        "It provides white noise",
+        "It is located near the entrance",
+        "It is far from the toilet",
+        "It provides stationery"
+      ], correct: [0, 3] },
+      { id: 8, type: "single", passage: PASSAGES.libraryInfo, question: "Who needs to read this infographic?", options: [
+        "The students of that school",
+        "People who happen to visit the school",
+        "The librarian of another school",
+        "The headmaster of that school",
+        "Parents who come to pick up their kids"
+      ], correct: 0 },
+      { id: 9, type: "multi", passage: PASSAGES.libraryInfo, question: "Which actions show disrespect for other students? (Pilih semua yang benar)", options: [
+        "Speaking loudly to friends.",
+        "Keeping the phone silent.",
+        "Eating snacks at the desk.",
+        "Playing music in the corner.",
+        "Moving chairs noisily."
+      ], correct: [0, 2, 3, 4] },
+      { id: 10, type: "single", passage: PASSAGES.libraryInfo, question: "You find this infographic in front of your school library. What will you do before your next visit to the library?", options: [
+        "Making sure that I bring my water bottle and lunch with me.",
+        "Bringing the books and stationery that I will use.",
+        "Organizing the book that I borrowed from the library.",
+        "Walking for five minutes so I can focus more when studying.",
+        "Making sure you look fresh because you will meet other students."
+      ], correct: 1 },
+
+      { id: 11, type: "single", passage: PASSAGES.bali, question: "Categorize main purpose: Munduk Waterfall (Relaxation), West Bali National Park (Conservation), Tegalalang Rice Terraces (Relaxation):", options: [
+        "Munduk: Relaxation | West Bali National Park: Conservation | Tegalalang: Relaxation",
+        "Munduk: Conservation | West Bali National Park: Relaxation | Tegalalang: Conservation",
+        "All are Conservation",
+        "All are Relaxation"
+      ], correct: 0 },
+      { id: 12, type: "single", passage: PASSAGES.bali, question: "The text mainly talks about Bali’s …", options: [
+        "wildlife species and nature lovers",
+        "unique cultural treasures and sites.",
+        "stunning nature and remarkable sites.",
+        "generations and cultural conservation.",
+        "scenic beauty and local farming practices."
+      ], correct: 2 },
+      { id: 13, type: "multi", passage: PASSAGES.bali, question: "Which parts of the text best support the description of Bali as 'full of natural beauty'? (Pilih semua yang benar)", options: [
+        "A peaceful area filled with green forests, calm mangrove swamps, and colorful coral reefs along the sea.",
+        "These terraces are shaped by generations of farmers who work the land by hand.",
+        "Water flows gently over rocky cliffs into a cool, clear pool. Mist rises into the air, mixing with the calming sound of falling water.",
+        "In the morning, mist rises above the fields, and sunlight reflects off the water in the paddies.",
+        "Farmers in wide-brimmed hats plant rice carefully, their feet sinking into the soft earth."
+      ], correct: [0, 2, 3] },
+
+      { id: 14, type: "single", passage: PASSAGES.internship, question: "During the internship, what did the writer do every morning?", options: [
+        "Made schedules and explained them to the coaches.",
+        "Played football with the team and got the first aid kit.",
+        "Prepared a club gift, guided the coaches, and gave t-shirts.",
+        "Woke up early, arrived on time, and followed the instructions.",
+        "Set up cones, brought water, and checked emergency schedules."
+      ], correct: 3 },
+      { id: 15, type: "multi", passage: PASSAGES.internship, question: "What are the best words to describe the writer’s personality during the internship? (Pilih semua yang benar)", options: [
+        "Careful and ready to help",
+        "Confident and enjoys working alone",
+        "Responsible and willing to learn",
+        "Friendly and works well with others",
+        "Creative and likes to try new things"
+      ], correct: [0, 2, 3] },
+      { id: 16, type: "single", passage: PASSAGES.internship, question: "What will the writer most likely do after finishing the internship?", options: [
+        "Considering a career in a sports medicine",
+        "Stop working and focus only on school",
+        "Look for another chance to work in a sports club",
+        "Study medicine to become a doctor",
+        "Train as a professional football player"
+      ], correct: 2 },
+
+      { id: 17, type: "multi", passage: PASSAGES.socialMedia, question: "What will happen if teenagers have poor sleep quality? (Pilih semua yang benar)", options: [
+        "Teenagers' grades could drop.",
+        "Teens struggle to focus in class.",
+        "Teens are likely to feel stressed.",
+        "Teenagers will be more confident",
+        "Teens will become mentally strong."
+      ], correct: [0, 1, 2] },
+      { id: 18, type: "multi", passage: PASSAGES.socialMedia, question: "Which of the following additional facts would most likely make the text more persuasive? (Pilih semua yang benar)", options: [
+        "Research data showing the number of teenagers experiencing anxiety or depression because of social media.",
+        "Personal stories from teenagers who feel happier after reducing their social media use.",
+        "Statistics about how many teenagers use social media every day.",
+        "A list of the most popular social media platforms among teenagers.",
+        "Expert opinions from doctors or psychologists about the dangers of social media for mental health."
+      ], correct: [0, 1, 4] },
+      { id: 19, type: "multi", passage: PASSAGES.socialMedia, question: "Which statements from the text support the author’s argument that social media harms teen mental health? (Pilih semua yang benar)", options: [
+        "\"When teens see pictures of people who seem perfect, they feel that they are not good enough.\"",
+        "\"Many teenagers use their phones late at night, which reduces sleep time and quality.\"",
+        "\"Schools should teach students how to use social media in healthy ways.\"",
+        "\"Social media helps teens stay connected with friends and learn about interesting topics.\"",
+        "\"Victims of cyberbullying often feel alone, scared, and helpless.\""
+      ], correct: [0, 1, 4] },
+      { id: 20, type: "multi", passage: PASSAGES.socialMedia, question: "What is the most prominent impression you gain from the text? (Pilih semua yang benar)", options: [
+        "Social media makes teenagers unhappy because they compare their lives to unrealistic images online.",
+        "Teenagers should completely stop using social media to protect their mental health.",
+        "Using social media too much can disturb teenagers' sleep and make it harder for them to focus at school.",
+        "Cyberbullying is a serious problem on social media and can make teenagers feel lonely and scared.",
+        "The text explains that social media has only negative effects without any positive sides."
+      ], correct: [0, 2, 3] },
+
+      { id: 21, type: "single", passage: PASSAGES.lionMouse, question: "Which option best summarizes the story?", options: [
+        "Beginning: A lion was walking... Problem: Mouse lost... Solution: Lion gave food... Lesson: Be generous.",
+        "Beginning: A mouse accidentally disturbed a sleeping lion. Problem: The lion was caught in a hunter’s net. Solution: The mouse chewed through the net and set the lion free. Lesson: Even the smallest creature can be a great help.",
+        "Beginning: Lion and mouse best friends... Problem: Lion hurt... Solution: Mouse found water... Lesson: Adventure.",
+        "Beginning: Mouse building home... Problem: Storm destroyed tree... Solution: Mouse called help... Lesson: Teamwork.",
+        "Beginning: Lion hungry... Problem: Couldn't catch prey... Solution: Mouse helped find food... Lesson: Humility."
+      ], correct: 1 },
+      { id: 22, type: "multi", passage: PASSAGES.lionMouse, question: "Which of the following statements best conveys the message of the story? (Pilih semua yang benar)", options: [
+        "We should never wake up a sleeping animal",
+        "Even the small and weak can help the strong",
+        "It’s always good to ask for help when we need it",
+        "Lions are dangerous animals and should be avoided",
+        "Never trust anyone who plays with your hair"
+      ], correct: [1, 2] },
+      { id: 23, type: "single", passage: PASSAGES.lionMouse, question: "Why did the lion trust the mouse and decide to let him go instead of eating him?", options: [
+        "The lion was too tired to eat the mouse",
+        "The mouse told the lion he might help him one day",
+        "The lion was felling happy to see the mouse",
+        "The lion heard someone coming and got scared",
+        "The mouse promised to bring food for the lion"
+      ], correct: 2 },
+      { id: 24, type: "multi", passage: PASSAGES.lionMouse, question: "As you read the part where the lion let the mouse go, which of the following endings do you anticipate? (Pilih semua yang benar)", options: [
+        "The mouse forgets about the lion and never helps him",
+        "The lion gets into trouble and no one helps him",
+        "The lion becomes angry at all small animals",
+        "The mouse spreads the lion's kindnes to other animals",
+        "The mouse becomes the lion’s loyal assistant"
+      ], correct: [3, 4] },
+      { id: 25, type: "multi", passage: PASSAGES.lionMouse, question: "Which of the following sentences from the story help you understand the lion’s character? (Pilih semua yang benar)", options: [
+        "“The lion always took his afternoon nap under the shade of a big tree in the bushes.”",
+        "“He caught the mouse and questioned him for interrupting his nap.”",
+        "“The lion was amused at the mouse’s words and decided to spare his life.”",
+        "“With his sharp teeth, the mouse nibbled through the net.”",
+        "“The lion thanked the mouse immensely for his help.”"
+      ], correct: [1, 2, 4] },
+
+      { id: 26, type: "single", passage: PASSAGES.studyTech, question: "Based on the information given, we can keep our mind focused and fresh by ….", options: [
+        "knowing your learning style",
+        "using Pomodoro Technique",
+        "using online quizzes apps",
+        "by reviewing materials",
+        "by creating mind maps"
+      ], correct: 1 },
+      { id: 27, type: "single", passage: PASSAGES.studyTech, question: "Determine categorization: Be patient & persistent (Self Management), Use Pomodoro technique (Time Management), Set a consistent study schedule (Time Management):", options: [
+        "Be patient: Self Mgt | Pomodoro: Time Mgt | Schedule: Time Mgt",
+        "Be patient: Time Mgt | Pomodoro: Self Mgt | Schedule: Self Mgt",
+        "All are Time Management",
+        "All are Self Management"
+      ], correct: 0 },
+      { id: 28, type: "multi", passage: PASSAGES.studyTech, question: "Which of the following statements best reflect the author’s purpose in writing the text? (Pilih semua yang benar)", options: [
+        "To help students find fun strategies to play after studying",
+        "To offer students guidance on how to learn more efficiently",
+        "To encourage students to use simple habits to improve their learning",
+        "To explain why studying tips is difficult for most students",
+        "To show students that they can manage their time and focus better"
+      ], correct: [1, 2, 4] },
+      { id: 29, type: "multi", passage: PASSAGES.studyTech, question: "If you are preparing for an important exam and want to improve your study routine, which techniques can be implemented effectively? (Pilih semua yang benar)", options: [
+        "Only study when you are in a group discussion with others",
+        "Use technology during all study sessions in or outside class",
+        "Use the Pomodoro Technique to structure your study and break time",
+        "Practice and repeat study material regularly to retain information",
+        "Create a quiet and comfortable study space to improve focus"
+      ], correct: [2, 3, 4] },
+
+      { id: 30, type: "multi", passage: PASSAGES.reef, question: "Which of the following descriptions are mentioned clearly in the text? (Pilih semua yang benar)", options: [
+        "The reef was built by local communities over hundreds of years",
+        "The reef is located in the Pacific Ocean near Australia",
+        "The reef can help protect the coast from big waves",
+        "The reef is home to sea turtles and dolphins",
+        "The reef has more than 10,000 coral islands"
+      ], correct: [1, 2, 3] },
+      { id: 31, type: "single", passage: PASSAGES.reef, question: "The author mentioned “It feels like a different world under the sea”. What does this phrase most likely mean?", options: [
+        "A safe place that has bright reef",
+        "A peaceful place where people can live under water",
+        "A colorful place that looks the same as the land",
+        "A shining reef that is quiet",
+        "A calm place that looks beautiful and unique"
+      ], correct: 4 },
+      { id: 32, type: "single", passage: PASSAGES.reef, question: "Which of the following best represents the main idea implied by the text?", options: [
+        "The reef is useful for fishing and shipping",
+        "The reef is large, but not important to people",
+        "The reef is a natural treasure that must be cared for",
+        "The reef is only for scientists and researchers to explore",
+        "The reef is a protected area that should be closed to visitors"
+      ], correct: 2 },
+      { id: 33, type: "single", passage: PASSAGES.reef, question: "Which detail would best encourage people to visit the Great Barrier Reef?", options: [
+        "Visitors can see an Australian national park",
+        "Visitors can stay in hotels around the reef",
+        "Visitors can get there by boat or short flights",
+        "Visitors can protect the coral and the animals",
+        "Visitors can see the coral by diving or swimming"
+      ], correct: 4 },
+      { id: 34, type: "multi", passage: PASSAGES.reef, question: "Which parts of the text best support the idea that the Great Barrier Reef is both beautiful and important? (Pilih semua yang benar)", options: [
+        "The reef helps protect the coast from big waves",
+        "It is home to sea turtles, dolphins, and colorful fish",
+        "The coral reefs grow best in cold, deep water",
+        "Some areas of the reef are damaged by starfish and warm water",
+        "The reef was discovered by sailors in the 1800s"
+      ], correct: [0, 1] },
+
+      { id: 35, type: "single", passage: PASSAGES.money, question: "Fit description: Saving for university (Long-term), Saving for new phone (Short-term), Starting a business (Long-term):", options: [
+        "University: Long-term | Phone: Short-term | Business: Long-term",
+        "University: Short-term | Phone: Long-term | Business: Short-term",
+        "All are Short-term goals",
+        "All are Long-term goals"
+      ], correct: 0 },
+      { id: 36, type: "multi", passage: PASSAGES.money, question: "According to the text, which of the following actions support smart money management for students? (Pilih semua yang benar)", options: [
+        "Tracking daily expenses using a notebook or app",
+        "Spending more money than the monthly budget allows",
+        "Setting financial goals for the short and long term",
+        "Borrowing money whenever there is not enough left",
+        "Dividing money into saving, spending, and emergency funds"
+      ], correct: [0, 2, 4] },
+      { id: 37, type: "multi", passage: PASSAGES.money, question: "Who is most likely to be the target audience of this text? (Pilih semua yang benar)", options: [
+        "Teenagers who are learning to manage their money",
+        "Parents looking for tips on how to control their children’s spending",
+        "Students who want to plan for their financial future",
+        "High school readers who need to understand saving and budgeting",
+        "Bankers and financial experts"
+      ], correct: [0, 2, 3] },
+      { id: 38, type: "single", passage: PASSAGES.money, question: "Which information would make the text more informative about student spending habits?", options: [
+        "A paragraph about the history of financial education in schools",
+        "A table showing common monthly high school students expenses",
+        "A graph comparing saving habits between teenagers and adults",
+        "A chart listing popular entertainment choices among students",
+        "A paragraph about students' experiences in managing budget"
+      ], correct: 1 },
+      { id: 39, type: "multi", passage: PASSAGES.money, question: "Which of the following statements are supported by clear data or facts in the text and table? (Pilih semua yang benar)", options: [
+        "45% of students save money regularly",
+        "Tracking expenses can help understand spending habits",
+        "Most students do not care about money at all",
+        "Saving 10% of allowance is a good practice",
+        "Spending on fun activities is always better than saving"
+      ], correct: [0, 1, 3] },
+
+      { id: 40, type: "single", passage: PASSAGES.falseLion, question: "Which statement provides the most accurate chronological summary of the story's main events?", options: [
+        "Shero falls into dirt... Hyenas cause trouble... Hera tells Shero he is funny...",
+        "Hera is a strong lion king. Shero likes to pretend to be strong. The hyenas cause trouble near the river. Hera scares the hyenas, but Shero makes them laugh. Shero learns that making others happy is special.",
+        "Hera and Shero are both strong leaders... Hyenas come to help... Shero tells funny stories...",
+        "Shero is a strong lion king... Hera is jealous of Shero... Shero defeats hyenas...",
+        "Shero wants to be king and fights Hera... Hyenas help Shero... Hera leaves..."
+      ], correct: 1 },
+      { id: 41, type: "multi", passage: PASSAGES.falseLion, question: "What can we learn from the story of Hera and Shero? (Pilih semua yang benar)", options: [
+        "Everyone has something special to give, even if they are not the leader",
+        "Being funny and making others smile is just as important as being strong",
+        "Good friends will support you and help you see your real strengths",
+        "Working together is better when people use their different talents",
+        "Trying your best to help others is more important than always being perfect"
+      ], correct: [0, 1, 2, 3, 4] },
+      { id: 42, type: "single", passage: PASSAGES.falseLion, question: "The hyenas laugh so much when Shero tries to roar like Hera because ....", options: [
+        "Shero tries to roar in a serious way and surprises the hyenas",
+        "Shero’s roar is funny, which the hyenas think he is joking",
+        "Hera tells a joke about Shero to make the hyenas laugh",
+        "Shero is acting like Hera, and it's absolutely brilliant",
+        "Shero trips and falls when trying to show his strength"
+      ], correct: 1 },
+      { id: 43, type: "multi", passage: PASSAGES.falseLion, question: "If in the beginning of the story, Shero is a strong lion with a loud roar, just like Hera. What would happen in the end? (Pilih semua yang benar)", options: [
+        "Shero and Hera would both scare the hyenas away together",
+        "Shero would become the king, and Hera would leave the savannah",
+        "Shero would get respect from the other animals for his strength",
+        "The hyenas would still laugh at Shero because he is funny",
+        "Shero would try to take Hera’s place as the only lion king"
+      ], correct: [0, 2] },
+      { id: 44, type: "multi", passage: PASSAGES.falseLion, question: "Shero is clumsy and funny, this is shown when he .... (Pilih semua yang benar)", options: [
+        "scares the hyenas away with his loud and powerful roar",
+        "makes the other animals smile by pretending to be a great king",
+        "tries to roar like Hera, but his voice is small and makes the hyenas laugh",
+        "walks with Hera to confront the hyenas, acting as if he is an important king too",
+        "tells the hyenas that he is as mighty as King Hera, even though no one believes him"
+      ], correct: [2, 4] }
+    ];
+
+    // Map kunci jawaban untuk kalkulasi nilai
+    const keys = {};
+    questionsData.forEach(q => {
+      keys[q.id] = q.correct;
+    });
+
+    function startExam() {
+      studentNama = document.getElementById('input-nama').value.trim();
+      studentKelas = document.getElementById('input-kelas').value.trim();
+      if(!studentNama || !studentKelas) return alert("Mohon isi Nama Lengkap dan Kelas terlebih dahulu!");
+
+      document.getElementById('disp-nama').innerText = studentNama;
+      document.getElementById('disp-kelas').innerText = "Kelas: " + studentKelas;
+      document.getElementById('modal-start').style.display = 'none';
+
+      enterFullscreen();
+      initNav();
+      loadQuestion(0);
+      startTimer();
+      setupSecurity();
+    }
+
+    function enterFullscreen() {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+
+    function reLock() {
+      document.getElementById('modal-lock').style.display = 'none';
+      enterFullscreen();
+    }
+
+    function setupSecurity() {
+      document.addEventListener('fullscreenchange', handleViolation);
+      document.addEventListener('visibilitychange', () => { if (document.hidden) handleViolation(); });
+      window.addEventListener('blur', handleViolation);
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || e.altKey || (e.ctrlKey && (e.key === 't' || e.key === 'n' || e.key === 'w' || e.key === 'i' || e.key === 'u' || e.key === 'c' || e.key === 'v'))) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
+
+    function handleViolation() {
+      if (document.getElementById('modal-start').style.display !== 'none') return;
+      violationCount++;
+      if (violationCount >= maxViolations) {
+        alert("Anda terdeteksi keluar dari layar ujian lebih dari batas toleransi. Ujian dikumpulkan otomatis!");
+        finishExam(true);
+      } else {
+        document.getElementById('warn-count').innerText = maxViolations - violationCount;
+        document.getElementById('modal-lock').style.display = 'flex';
+      }
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        totalSeconds--;
+        let m = Math.floor(totalSeconds / 60);
+        let s = totalSeconds % 60;
+        document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0':''}${s}`;
+        if (totalSeconds <= 0) { clearInterval(timerInterval); finishExam(true); }
+      }, 1000);
+    }
+
+    function initNav() {
+      let grid = document.getElementById('grid-nav');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 44; i++) {
+        let b = document.createElement('button');
+        b.className = 'btn-num';
+        b.innerText = i;
+        b.id = 'nav-' + i;
+        b.onclick = () => loadQuestion(i - 1);
+        grid.appendChild(b);
+      }
+    }
+
+    function loadQuestion(idx) {
+      currentQ = idx;
+      let qData = questionsData[idx] || questionsData[0];
+      let qNum = idx + 1;
+
+      document.getElementById('q-title').innerText = "Soal No. " + qNum;
+      document.getElementById('q-passage').innerHTML = qData.passage ? `<div class="text-passage">${qData.passage}</div>` : '';
+      document.getElementById('q-text').innerText = qData.question;
+
+      let oBox = document.getElementById('q-options');
+      oBox.innerHTML = '';
+
+      let isMulti = Array.isArray(keys[qNum]);
+      let inputType = isMulti ? 'checkbox' : 'radio';
+
+      qData.options.forEach((optText, optIdx) => {
+        let isChecked = false;
+        if (isMulti) {
+          isChecked = userAnswers[qNum] && userAnswers[qNum].includes(optIdx);
+        } else {
+          isChecked = userAnswers[qNum] === optIdx;
+        }
+
+        let item = document.createElement('div');
+        item.className = 'option-item';
+        item.onclick = () => toggleAnswer(qNum, optIdx, isMulti);
+        item.innerHTML = `<input type="${inputType}" name="opt_${qNum}" ${isChecked ? 'checked' : ''}> <span>${optText}</span>`;
+        oBox.appendChild(item);
+      });
+
+      document.querySelectorAll('.btn-num').forEach(b => b.classList.remove('active'));
+      document.getElementById('nav-' + qNum).classList.add('active');
+    }
+
+    function toggleAnswer(qNum, optIdx, isMulti) {
+      if (isMulti) {
+        if (!userAnswers[qNum]) userAnswers[qNum] = [];
+        let pos = userAnswers[qNum].indexOf(optIdx);
+        if (pos > -1) userAnswers[qNum].splice(pos, 1);
+        else userAnswers[qNum].push(optIdx);
+      } else {
+        userAnswers[qNum] = optIdx;
+      }
+      
+      document.getElementById('nav-' + qNum).classList.add('done');
+      loadQuestion(currentQ);
+    }
+
+    function nextQuestion() { if(currentQ < 43) loadQuestion(currentQ + 1); }
+    function prevQuestion() { if(currentQ > 0) loadQuestion(currentQ - 1); }
+
+    function calculateScore() {
+      let correctCount = 0;
+      for(let i = 1; i <= 44; i++) {
+        let userAns = userAnswers[i];
+        let keyAns = keys[i];
+
+        if (Array.isArray(keyAns)) {
+          if (Array.isArray(userAns) && JSON.stringify(userAns.sort()) === JSON.stringify(keyAns.sort())) {
+            correctCount++;
+          }
+        } else {
+          if (userAns === keyAns) correctCount++;
+        }
+      }
+      return Math.round((correctCount / 44) * 100);
+    }
+
+    function finishExam(force = false) {
+      if(!force && !confirm("Apakah Anda yakin ingin menyelesaikan ujian?")) return;
+      clearInterval(timerInterval);
+      let finalScore = calculateScore();
+
+      let formData = new FormData();
+      formData.append(ENTRY_NAMA, studentNama);
+      formData.append(ENTRY_KELAS, studentKelas);
+      formData.append(ENTRY_NILAI, finalScore);
+
+      fetch(GOOGLE_FORM_URL, { method: "POST", mode: "no-cors", body: formData }).catch(() => {});
+
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      
+      document.body.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; background:#1e293b; color:#fff; text-align:center; padding:20px;">
+          <h2 style="color:#22c55e; font-size:32px; margin-bottom:10px;">Ujian Selesai!</h2>
+          <p style="font-size:22px; margin:15px 0;">Nilai Akhir: <b style="color:#38bdf8;">${finalScore} / 100</b></p>
+          <p style="color:#94a3b8; font-size:14px;">Data jawaban dan skor Anda telah tersimpan secara otomatis ke Google Form / Sheets.</p>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
