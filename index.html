@@ -32,14 +32,6 @@
 </head>
 <body oncontextmenu="return false;">
 
-  <!-- Form Tersembunyi Kirim Nilai Langsung ke Google Form MID BAHASA INGGRIS SMA -->
-  <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-  <form id="gform" action="https://docs.google.com/forms/d/e/1FAIpQLSdxnT1L2yMbqfVHn1HcoULxH3ZROEmifE2hGDZSEgekphOOKg/formResponse" method="POST" target="hidden_iframe" style="display:none;">
-    <input type="text" name="entry.404217112" id="g_nama">
-    <input type="text" name="entry.107535219" id="g_kelas">
-    <input type="text" name="entry.952021943" id="g_nilai">
-  </form>
-
   <!-- Modal Awal Login -->
   <div id="modal-start">
     <div class="card-modal">
@@ -100,6 +92,8 @@
   </div>
 
   <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbycVze_OyAsWrL4GOo0GrBKu9LWtb9ZNeO2m-YvITP5YeoEUexcWnc7L7JtU0ASIVHS/exec";
+
     let currentQ = 0;
     let userAnswers = {};
     let studentNama = "", studentKelas = "";
@@ -157,7 +151,7 @@
         "Respect leaders’ decisions and community agreements."
       ], correct: [0, 1, 2] },
 
-      { id: 6, type: "single", passage: PASSAGES.libraryInfo, question: "Categorize activities: Standing up (Break), Bringing a book (Preparation), Doing stretch (Break):", options: [
+      { id: 6, type: "single", passage: PASSAGES.libraryInfo, question: "Categorize the following activities from the text (Standing up, Bringing a book, Doing stretch):", options: [
         "Standing up: Break | Bringing a book: Preparation | Doing stretch: Break",
         "Standing up: Preparation | Bringing a book: Break | Doing stretch: Preparation",
         "All are Preparation",
@@ -192,7 +186,7 @@
         "Making sure you look fresh because you will meet other students."
       ], correct: 1 },
 
-      { id: 11, type: "single", passage: PASSAGES.bali, question: "Categorize main purpose: Munduk Waterfall (Relaxation), West Bali National Park (Conservation), Tegalalang Rice Terraces (Relaxation):", options: [
+      { id: 11, type: "single", passage: PASSAGES.bali, question: "Categorize the main purpose for visiting each place (Munduk Waterfall, West Bali National Park, Tegalalang Rice Terraces):", options: [
         "Munduk: Relaxation | West Bali National Park: Conservation | Tegalalang: Relaxation",
         "Munduk: Conservation | West Bali National Park: Relaxation | Tegalalang: Conservation",
         "All are Conservation",
@@ -364,7 +358,7 @@
         "The reef was discovered by sailors in the 1800s"
       ], correct: [0, 1] },
 
-      { id: 35, type: "single", passage: PASSAGES.money, question: "Fit description: Saving for university (Long-term), Saving for new phone (Short-term), Starting a business (Long-term):", options: [
+      { id: 35, type: "single", passage: PASSAGES.money, question: "Categorize financial goals: Saving money for university, Saving to buy a new phone, Starting a business:", options: [
         "University: Long-term | Phone: Short-term | Business: Long-term",
         "University: Short-term | Phone: Long-term | Business: Short-term",
         "All are Short-term goals",
@@ -587,22 +581,23 @@
       clearInterval(timerInterval);
       let finalScore = calculateScore();
 
-      // Isi form tersembunyi
-      document.getElementById('g_nama').value = studentNama;
-      document.getElementById('g_kelas').value = studentKelas;
-      document.getElementById('g_nilai').value = finalScore;
+      // Penghantaran data secara langsung ke Web App Google Sheets
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: studentNama,
+          kelas: studentKelas,
+          nilai: finalScore
+        })
+      }).catch(() => {});
 
-      // Keluar dari Fullscreen agar submit tidak dicegat browser
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
       }
 
-      // Kirim data secara otomatis ke Google Form
-      setTimeout(() => {
-        document.getElementById('gform').submit();
-      }, 300);
-      
-      // Tampilan Akhir Hanya Menampilkan Nama, Kelas, dan Nilai Siswa
+      // Paparan Akhir hanya Menunjukkan Nama, Kelas, dan Nilai Siswa
       document.body.innerHTML = `
         <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; background:#1e293b; color:#fff; text-align:center; padding:20px;">
           <h2 style="color:#22c55e; font-size:32px; margin-bottom:15px;">Ujian Selesai!</h2>
