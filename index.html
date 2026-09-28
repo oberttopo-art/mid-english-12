@@ -602,11 +602,15 @@
         document.getElementById('gform').submit();
       }, 300);
       
+      // Tampilan Akhir Hanya Menampilkan Nama, Kelas, dan Nilai Siswa
       document.body.innerHTML = `
         <div style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; background:#1e293b; color:#fff; text-align:center; padding:20px;">
-          <h2 style="color:#22c55e; font-size:32px; margin-bottom:10px;">Ujian Selesai!</h2>
-          <p style="font-size:22px; margin:15px 0;">Nilai Akhir: <b style="color:#38bdf8;">${finalScore} / 100</b></p>
-          <p style="color:#94a3b8; font-size:14px;"></p>
+          <h2 style="color:#22c55e; font-size:32px; margin-bottom:15px;">Ujian Selesai!</h2>
+          <div style="background:#334155; padding:20px 30px; border-radius:10px; margin-bottom:20px; box-shadow:0 4px 6px rgba(0,0,0,0.2);">
+            <h3 style="color:#f8fafc; font-size:20px; margin-bottom:5px;">${studentNama}</h3>
+            <p style="color:#cbd5e1; font-size:16px;">Kelas: ${studentKelas}</p>
+          </div>
+          <p style="font-size:24px;">Nilai Akhir: <b style="color:#38bdf8;">${finalScore} / 100</b></p>
         </div>
       `;
     }
