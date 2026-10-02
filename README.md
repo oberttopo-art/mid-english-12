@@ -1,2 +1,2 @@
-# mid-english-12
-mid test bahasa inggris
+# latihan-english-12
+test bahasa inggris
